@@ -1356,7 +1356,7 @@ $.jgrid.extend({
 										// data is posted successful
 										// execute aftersubmit with the returned data from server
 										if( typeof rp_ge.afterSubmit === 'function' ) {
-											ret = rp_ge.afterSubmit(data,postdata);
+											ret = rp_ge.afterSubmit(data,postd);
 										}
 									}
 									if(ret[0] === false) {

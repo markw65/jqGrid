@@ -1,11 +1,11 @@
 ;(function ($) {
 /*
- * jqGrid  3.6 - jQuery Grid
+ * jqGrid  3.6.1 - jQuery Grid
  * Copyright (c) 2008, Tony Tomov, tony@trirand.com
  * Dual licensed under the MIT and GPL licenses
  * http://www.opensource.org/licenses/mit-license.php
  * http://www.gnu.org/licenses/gpl.html
- * Date: 2009-11-08
+ * Date: 2009-11-23
  */
 $.jgrid = $.jgrid || {};
 $.extend($.jgrid,{
@@ -948,7 +948,7 @@ $.fn.jqGrid = function( pin ) {
 			};
 			pgcnt = "pg_"+pgid;
 			lft = pgid+"_left"; cent = pgid+"_center"; rgt = pgid+"_right";
-			$(ts.p.pager).addClass('ui-jqgrid-pager corner-bottom')
+			$(ts.p.pager).addClass('ui-jqgrid-pager ui-corner-bottom')
 			.append("<div id='"+pgcnt+"' class='ui-pager-control' role='group'><table cellspacing='0' cellpadding='0' border='0' class='ui-pg-table' style='width:100%;table-layout:fixed;' role='row'><tbody><tr><td id='"+lft+"' align='left'></td><td id='"+cent+"' align='center' style='white-space:pre;'></td><td id='"+rgt+"' align='right'></td></tr></tbody></table></div>")
 			.attr("dir","ltr"); //explicit setting
 			if(ts.p.rowList.length >0){

@@ -647,10 +647,13 @@ $.jgrid.extend({
 						if(!this.edittype) this.edittype = "text";
 						elc = createEl(this.edittype,opt,tmp,false,$.extend({},$.jgrid.ajaxOptions,obj.p.ajaxSelectOptions || {}));
 						if(tmp == "" && this.edittype == "checkbox") {tmp = $(elc).attr("offval");}
-						if(rowid != "_multi" &&
-                           (rp_ge.checkOnSubmit || rp_ge.checkOnUpdate))
-                        {
-                            rp_ge._savedData[nm] = tmp;
+						if(rowid != "_multi") {
+                            if (rp_ge.checkOnSubmit || rp_ge.checkOnUpdate) {
+                                rp_ge._savedData[nm] = tmp;
+                            }
+                            if (this.edittype == 'text' || this.edittype == 'textarea') {
+                                multicomplete(obj, $(elc), [ tmp ], [ rowid ]);
+                            }
                         }
 						$(elc).addClass("FormElement");
 						trdata = $(tb).find("tr[rowpos="+rp+"]");
@@ -772,18 +775,7 @@ $.jgrid.extend({
                         var field = $("#"+nm,"#"+fmid);
 						switch (cm[i].edittype) {
 							case "text":
-                                if ($.fn.autocomplete && obj.p.multiselect.autocomplete) {
-                                    field.unautocomplete();
-                                    if (this.list.length > 1) {
-                                        field.autocomplete(this.list, ac_opts);
-                                        field.focus(function() {
-                                            if ($(this).val() == $.jgrid.edit.multiple) {
-                                                this.select();
-                                                $(this).bind("blur keydown", ac_events);
-                                            }
-                                        });
-                                    }
-                                }
+                                multicomplete(obj, field, this.list, sel);
 							case "password":
 							case "button" :
 							case "image":
@@ -791,6 +783,7 @@ $.jgrid.extend({
 								field.val(tmp);
 								break;
 							case "textarea":
+                                multicomplete(obj, field, this.list, sel);
 								if(tmp == "&nbsp;" || tmp == "&#160;" || (tmp.length==1 && tmp.charCodeAt(0)==160) ) {tmp='';}
 								field.val(tmp);
 								break;
@@ -1698,6 +1691,31 @@ $.jgrid.extend({
 		});
 	}
 });
+
+function multicomplete(obj, field, list, sel) {
+    if ($.fn.autocomplete && obj.p.multiselect.autocomplete) {
+        var opts = ac_opts;
+        if ($.isFunction(obj.p.multiselect.unautocomplete)) {
+            obj.p.multiselect.unautocomplete.call(obj, field);
+        } else {
+            field.unautocomplete();
+            field.unbind(".multicomplete");
+        }
+        if ($.isFunction(obj.p.multiselect.autocomplete)) {
+            opts = obj.p.multiselect.autocomplete.call(obj, field, list, opts, sel);
+        } 
+        if (opts && list.length > 1) {
+            field.autocomplete(list, opts);
+            field.bind("focus.multicomplete", function() {
+                if ($(this).val() == $.jgrid.edit.multiple) {
+                    this.select();
+                    $(this).bind("blur.multicomplete keydown.multicomplete", ac_events);
+                }
+            });
+        }
+    }
+}
+
 function ac_matchResult(d) { return d[0] }
 function ac_events(evt) {
     if (evt.type == "blur") {

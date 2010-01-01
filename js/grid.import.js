@@ -163,6 +163,25 @@
                 }
             });
             return ret;
+        },
+        excelExport : function(o) {
+            o = $.extend({
+                exptype : "remote",
+                url : null,
+                oper: "oper",
+                tag: "excel",
+                exportOptions : {}
+            }, o || {});
+            return this.each(function(){
+                $t = this;
+                if(!this.grid) { return;}
+                if(o.exptype == "remote") {
+                    var pdata = $.extend({},this.p.postData);
+                    pdata[o.oper] = o.tag;
+                    var params = jQuery.param(pdata);
+                    window.location = o.url+"?"+params;
+                }
+            });
         }
     });
 })(jQuery);

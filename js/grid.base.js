@@ -1,11 +1,11 @@
 ;(function ($) {
 /*
- * jqGrid  3.6.1 - jQuery Grid
+ * jqGrid  3.6.2 - jQuery Grid
  * Copyright (c) 2008, Tony Tomov, tony@trirand.com
  * Dual licensed under the MIT and GPL licenses
  * http://www.opensource.org/licenses/mit-license.php
  * http://www.gnu.org/licenses/gpl.html
- * Date: 2009-11-23
+ * Date: 2009-12-10
  */
 $.jgrid = $.jgrid || {};
 $.extend($.jgrid,{
@@ -1475,7 +1475,7 @@ $.fn.jqGrid = function( pin ) {
 		}
 		grid.bDiv = document.createElement("div");
 		$(grid.bDiv)
-			.append($('<div style="position:relative"></div>').append('<div></div>').append(this))
+			.append($('<div style="position:relative;>'+(isMSIE && $.browser.version < 8 ? "height:0.01%;" : "")+'"</div>').append('<div></div>').append(this))
 			.addClass("ui-jqgrid-bdiv")
 			.css({ height: ts.p.height+(isNaN(ts.p.height)?"":"px"), width: (grid.width)+"px"})
 			.scroll(grid.scrollGrid);
@@ -2122,10 +2122,16 @@ $.jgrid.extend({
 					var tcell = $("td:eq("+pos+")",ind);
 					if(nData !== "") {
 						v = $t.formatter(rowid, nData, pos,ind,'edit');
-						$(tcell).html(v).attr("title",$.jgrid.stripHtml(v));
+						if($t.p.treeGrid && $(".tree-wrap",$(tcell)).length>0)
+							$("span",$(tcell)).html(v).attr("title",$.jgrid.stripHtml(v));
+						else 
+							$(tcell).html(v).attr("title",$.jgrid.stripHtml(v));
 					}
-					if (cssp){
-						if(typeof cssp === 'string') {$(tcell).addClass(cssp);} else {$(tcell).css(cssp);}
+					if(typeof cssp === 'string'){
+						if(cssp) {$(tcell).addClass(cssp);}
+						else {$(tcell).removeClass();}
+					} else if(cssp) {
+						$(tcell).css(cssp);
 					}
 					if(typeof attrp === 'object') {$(tcell).attr(attrp);}
 				}

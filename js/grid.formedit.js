@@ -387,6 +387,9 @@ $.jgrid.extend({
 				frmoper = "add";
 				p.caption=rp_ge[$t.p.id].addCaption;
 			} else {
+			    if (rowid == "_multi" && !$.jgrid.edit.multiple) {
+					$.jgrid.edit.multiple = "<multiple>";
+			    }
 				p.caption=rp_ge[$t.p.id].editCaption;
 				frmoper = "edit";
 			}
@@ -400,6 +403,7 @@ $.jgrid.extend({
 				closeovrl = false;
 			}
 			function getFormData(){
+				var multi = $("#id_g",frmtb).val().indexOf(",") >= 0;
 				$(frmtb+" > tbody > tr > td .FormElement").each(function() {
 					var celm = $(".customelement", this);
 					if (celm.length) {
@@ -450,6 +454,10 @@ $.jgrid.extend({
 					}
 					if($t.p.autoencode) {postdata[this.name] = $.jgrid.htmlEncode(postdata[this.name]);}
 					}
+                    if (multi && postdata[this.name] == $.jgrid.edit.multiple)
+                    {
+                        delete postdata[this.name];
+                    }
 				});
 				return true;
 			}
@@ -459,9 +467,53 @@ $.jgrid.extend({
 				for (i =1; i<=maxcols;i++) {
 					tmpl += tdtmpl;
 				}
-				if(rowid !== '_empty') {
+                if(rowid !== '_empty' && rowid !== '_multi') {
 					ind = $(obj).jqGrid("getInd",rowid);
 				}
+                var sel;
+                if (rowid==="_multi") {
+                    sel = obj.p.selarrrow;
+                } else {
+                    sel = [ rowid ];
+                }
+                var data = [];
+                if (sel && sel.length) {
+					var cm = obj.p.colModel;
+                    $.each(sel, function() {
+						var currow = this;
+                        var tre = $(obj).jqGrid("getInd",currow,true);
+						$('td[role="gridcell"]',tre).each( function(i) {
+							nm = cm[i].name;
+							// hidden fields are included in the form
+							if ( nm !== 'cb' && nm !== 'subgrid' && nm !== 'rn' && cm[i].editable===true) {
+								if(currow==="_empty") {
+									tmp = "";
+                                } else if(nm === obj.p.ExpandColumn && obj.p.treeGrid === true) {
+									tmp = $(this).text();
+								} else {
+									try {
+										tmp =  $.unformat.call(obj, $(this),{rowId:currow, colModel:cm[i]},i);
+									} catch (_) {
+										tmp = cm[i].edittype==="textarea" ? $(this).text() : $(this).html();
+									}
+								}
+                                var di = data[i];
+                                if (di == null) {
+                                    di = data[i] = { val:tmp, list:[tmp] };
+                                } else {
+                                    if (di.val != tmp) {
+                                        if (di.list.length == 1) {
+                                            di.list.unshift(di.val = $.jgrid.edit.multiple);
+                                        }
+                                        if ($.inArray(tmp, di.list) < 0) {
+                                            di.list.push(tmp);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    });
+                }
 				$(obj.p.colModel).each( function(i) {
 					nm = this.name;
 					// hidden fields are included in the form
@@ -471,21 +523,8 @@ $.jgrid.extend({
 						hc = this.hidden === true ? true : false;
 					}
 					dc = hc ? "style='display:none'" : "";
-					if ( nm !== 'cb' && nm !== 'subgrid' && this.editable===true && nm !== 'rn') {
-						if(ind === false) {
-							tmp = "";
-						} else {
-							if(nm === obj.p.ExpandColumn && obj.p.treeGrid === true) {
-								tmp = $("td[role='gridcell']:eq("+i+")",obj.rows[ind]).text();
-							} else {
-								try {
-									tmp =  $.unformat.call(obj, $("td[role='gridcell']:eq("+i+")",obj.rows[ind]),{rowId:rowid, colModel:this},i);
-								} catch (_) {
-									tmp =  (this.edittype && this.edittype === "textarea") ? $("td[role='gridcell']:eq("+i+")",obj.rows[ind]).text() : $("td[role='gridcell']:eq("+i+")",obj.rows[ind]).html();
-								}
-								if(!tmp || tmp === "&nbsp;" || tmp === "&#160;" || (tmp.length===1 && tmp.charCodeAt(0)===160) ) {tmp='';}
-							}
-						}
+					if (data[i]) {
+						var tmp = data[i].val;
 						var opt = $.extend({}, this.editoptions || {} ,{id:nm,name:nm, rowId: rowid}),
 						frmopt = $.extend({}, {elmprefix:'',elmsuffix:'',rowabove:false,rowcontent:''}, this.formoptions || {}),
 						rp = parseInt(frmopt.rowpos,10) || cnt+1,
@@ -498,7 +537,18 @@ $.jgrid.extend({
 						elc = $.jgrid.createEl.call($t,this.edittype,opt,tmp,false,$.extend({},$.jgrid.ajaxOptions,obj.p.ajaxSelectOptions || {}));
 						//if(tmp === "" && this.edittype == "checkbox") {tmp = $(elc).attr("offval");}
 						//if(tmp === "" && this.edittype == "select") {tmp = $("option:eq(0)",elc).text();}
-						if(rp_ge[$t.p.id].checkOnSubmit || rp_ge[$t.p.id].checkOnUpdate) {rp_ge[$t.p.id]._savedData[nm] = tmp;}
+                        if(rowid !== "_multi") {
+							if(rp_ge[$t.p.id].checkOnSubmit || rp_ge[$t.p.id].checkOnUpdate) {
+								rp_ge[$t.p.id]._savedData[nm] = tmp;
+							}
+                            if (this.edittype == 'text' || this.edittype == 'textarea') {
+                                multicomplete(obj, $(elc), [ tmp ], [ rowid ]);
+                            }
+                        } else {
+                            if (this.edittype == 'text' || this.edittype == 'textarea') {
+                                multicomplete(obj, $(elc), data[i].list, sel);
+                            }
+						}
 						$(elc).addClass("FormElement");
 						if( $.inArray(this.edittype, ['text','textarea','password','select']) > -1) {
 							$(elc).addClass("ui-widget-content ui-corner-all");
@@ -526,10 +576,10 @@ $.jgrid.extend({
 					}
 				});
 				if( cnt > 0) {
-					var idrow = $("<tr class='FormData' style='display:none'><td class='CaptionTD'></td><td colspan='"+ (maxcols*2-1)+"' class='DataTD'><input class='FormElement' id='id_g' type='text' name='"+obj.p.id+"_id' value='"+rowid+"'/></td></tr>");
+					var idrow = $("<tr class='FormData' style='display:none'><td class='CaptionTD'></td><td colspan='"+ (maxcols*2-1)+"' class='DataTD'><input class='FormElement' id='id_g' type='text' name='"+obj.p.id+"_id' value='"+sel.join()+"'/></td></tr>");
 					idrow[0].rp = cnt+999;
 					$(tb).append(idrow);
-					if(rp_ge[$t.p.id].checkOnSubmit || rp_ge[$t.p.id].checkOnUpdate) {rp_ge[$t.p.id]._savedData[obj.p.id+"_id"] = rowid;}
+                    if(rp_ge[$t.p.id].checkOnSubmit || rp_ge[$t.p.id].checkOnUpdate) {rp_ge._savedData[$t.p.id].id=sel.join();}
 				}
 				return retpos;
 			}
@@ -1004,6 +1054,7 @@ $.jgrid.extend({
 			}
 			if(rp_ge[$t.p.id].topinfo) {$(".tinfo",frmtb).show();}
 			if(rp_ge[$t.p.id].bottominfo) {$(".binfo",frmtb+"_2").show();}
+            if (rowid==="_multi") fillData(rowid,$t,frmgr);
 			tms = null;bt=null;
 			$("#"+$.jgrid.jqID(IDs.themodal)).keydown( function( e ) {
 				var wkey = e.target;
@@ -1020,7 +1071,8 @@ $.jgrid.extend({
 					return false;
 				}
 				if(rp_ge[$t.p.id].navkeys[0]===true) {
-					if($("#id_g",frmtb).val() === "_empty") {return true;}
+					var rid = $("#id_g",frmtb).val();
+					if (rid === "_empty" || rid.indexOf(",")>=0) {return true;}
 					if(e.which === rp_ge[$t.p.id].navkeys[1]){ //up
 						$("#pData", frmtb+"_2").trigger("click");
 						return false;
@@ -1079,7 +1131,7 @@ $.jgrid.extend({
 			// here initform - only once
 			$($t).triggerHandler("jqGridAddEditInitializeForm", [$("#"+frmgr), frmoper]);
 			if(onInitializeForm) {onInitializeForm.call($t,$("#"+frmgr), frmoper);}
-			if(rowid==="_empty" || !rp_ge[$t.p.id].viewPagerButtons) {$("#pData,#nData",frmtb+"_2").hide();} else {$("#pData,#nData",frmtb+"_2").show();}
+			if(rowid==="_empty" || rowid==="_multi" || !rp_ge[$t.p.id].viewPagerButtons) {$("#pData,#nData",frmtb+"_2").hide();} else {$("#pData,#nData",frmtb+"_2").show();}
 			$($t).triggerHandler("jqGridAddEditBeforeShowForm", [$("#"+frmgr), frmoper]);
 			if(onBeforeShow) { onBeforeShow.call($t, $("#"+frmgr), frmoper);}
 			$("#"+$.jgrid.jqID(IDs.themodal)).data("onClose",rp_ge[$t.p.id].onClose);
@@ -1849,6 +1901,11 @@ $.jgrid.extend({
 					.click(function(){
 						if (!$(this).hasClass('ui-state-disabled')) {
 							var sr = $t.p.selrow;
+							if ($t.p.multiselect && $t.p.multiselect.multiedit &&
+								$t.p.selarrrow && $t.p.selarrrow.length > 1)
+							{
+								sr = "_multi";
+							}
 							if (sr) {
 								if($.isFunction( o.editfunc ) ) {
 									o.editfunc.call($t, sr);
@@ -2110,4 +2167,55 @@ $.jgrid.extend({
 		});
 	}
 });
+
+function multicomplete(obj, field, list, sel) {
+    if ($.fn.autocomplete && obj.p.multiselect.autocomplete) {
+        var opts = ac_opts;
+        if ($.isFunction(obj.p.multiselect.unautocomplete)) {
+            obj.p.multiselect.unautocomplete.call(obj, field);
+        } else {
+            field.unautocomplete();
+            field.unbind(".multicomplete");
+        }
+        if ($.isFunction(obj.p.multiselect.autocomplete)) {
+            opts = obj.p.multiselect.autocomplete.call(obj, field, list, opts, sel);
+        }
+        if (opts && list.length > 1) {
+            field.autocomplete(list, opts);
+            field.bind("focus.multicomplete", function() {
+                if ($(this).val() == $.jgrid.edit.multiple) {
+                    this.select();
+                    $(this).bind("blur.multicomplete keydown.multicomplete", ac_events);
+                }
+            });
+        }
+    }
+}
+
+function ac_matchResult(d) { return d[0] }
+function ac_events(evt) {
+    if (evt.type == "blur") {
+        $(this).unbind("blur keydown", ac_events);
+        return false;
+    }
+    if (evt.type == "keydown" && evt.keyCode == 27) {
+        $(this).val($.jgrid.edit.multiple);
+        this.select();
+        return false;
+    }
+    return;
+}
+var ac_opts = {
+    autoFill: false,
+    minChars: 0,
+    formatItem: function(d) {
+        return $.jgrid.htmlEncode(d[0]);
+    },
+    formatResult: ac_matchResult,
+    formatMatch: ac_matchResult,
+    highlight: function(value, term) {
+        if (term == "") return value;
+                return value.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + term.replace(/([\^\$\(\)\[\]\{\}\*\.\+\?\|\\])/gi, "\\$1") + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<strong>$1</strong>");
+        }
+};
 })(jQuery);

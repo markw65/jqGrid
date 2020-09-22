@@ -2170,22 +2170,27 @@ $.jgrid.extend({
 
 function multicomplete(obj, field, list, sel) {
     if ($.fn.autocomplete && obj.p.multiselect.autocomplete) {
-        var opts = ac_opts;
+        var opts = Object.assign({}, ac_opts);
+
+        try {
         if ($.isFunction(obj.p.multiselect.unautocomplete)) {
             obj.p.multiselect.unautocomplete.call(obj, field);
         } else {
-            field.unautocomplete();
-            field.unbind(".multicomplete");
+                field.autocomplete("destroy");
         }
+        } catch (_) {}
+        field.off(".multicomplete .multifocus");
+
         if ($.isFunction(obj.p.multiselect.autocomplete)) {
             opts = obj.p.multiselect.autocomplete.call(obj, field, list, opts, sel);
+        } else if (list.length <= 1) {
+            return;
         }
-        if (opts && list.length > 1) {
-            field.autocomplete(list, opts);
-            field.bind("focus.multicomplete", function() {
+        if (opts) {
+            field.autocomplete(opts).on("focus.multicomplete", function() {
                 if ($(this).val() == $.jgrid.edit.multiple) {
                     this.select();
-                    $(this).bind("blur.multicomplete keydown.multicomplete", ac_events);
+                    $(this).on("blur.multifocus keydown.multifocus", ac_events);
                 }
             });
         }
@@ -2195,7 +2200,7 @@ function multicomplete(obj, field, list, sel) {
 function ac_matchResult(d) { return d[0] }
 function ac_events(evt) {
     if (evt.type == "blur") {
-        $(this).unbind("blur keydown", ac_events);
+        $(this).off(".multifocus");
         return false;
     }
     if (evt.type == "keydown" && evt.keyCode == 27) {
@@ -2206,8 +2211,9 @@ function ac_events(evt) {
     return;
 }
 var ac_opts = {
-    autoFill: false,
-    minChars: 0,
+//    autoFill: false,
+    minLength: 0,
+    /*
     formatItem: function(d) {
         return $.jgrid.htmlEncode(d[0]);
     },
@@ -2217,5 +2223,6 @@ var ac_opts = {
         if (term == "") return value;
                 return value.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + term.replace(/([\^\$\(\)\[\]\{\}\*\.\+\?\|\\])/gi, "\\$1") + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<strong>$1</strong>");
         }
+*/
 };
 })(jQuery);

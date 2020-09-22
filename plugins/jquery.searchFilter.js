@@ -310,8 +310,8 @@ jQuery.fn.searchFilter = function(fields, options) {
                         url : this.dataUrl,
                         complete: function(data) {
                             var $d;
-                            if(bs != null) $d =jQuery("<div />").append(bs(data));
-                            else $d = jQuery("<div />").append(data.responseText);
+                            if(bs != null) $d =jQuery("<div></div>").append(bs(data));
+                            else $d = jQuery("<div></div>").append(data.responseText);
                             $d.find("select").addClass("field" + field_num).hide();
                             jData.append($d.html());
                             if (iEvent) initData(".field" + i, iEvent);

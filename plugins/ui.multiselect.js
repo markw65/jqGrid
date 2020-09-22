@@ -137,7 +137,7 @@ $.widget("ui.multiselect", {
 	},
 	_getOptionNode: function(option) {
 		option = $(option);
-		var node = $('<li class="ui-state-default ui-element" title="'+option.text()+'"><span class="ui-icon"/>'+option.text()+'<a href="#" class="action"><span class="ui-corner-all ui-icon"/></a></li>').hide();
+        var node = $('<li class="ui-state-default ui-element" title="'+option.text()+'"><span class="ui-icon"></span>'+option.text()+'<a href="#" class="action"><span class="ui-corner-all ui-icon"></span></a></li>').hide();
 		node.data('optionLink', option);
 		return node;
 	},
@@ -252,9 +252,10 @@ $.widget("ui.multiselect", {
 			$(this).parent().draggable({
 	      connectToSortable: 'ul.selected',
 				helper: function() {
-					var selectedItem = that._cloneWithData($(this)).width($(this).width() - 50);
-					selectedItem.width($(this).width());
-					return selectedItem;
+                    return that._cloneWithData($(this)).width($(this).width()-8);
+                },
+                stop: function(event, ui) {
+                    ui.helper.width("auto");
 				},
 				appendTo: '.ui-multiselect',
 				containment: '.ui-multiselect',

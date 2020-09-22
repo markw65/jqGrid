@@ -3551,7 +3551,7 @@ $.jgrid.extend({
 		}
 		var ts = this.get(0);
 		function resortRows(parent, clobj) {
-			$(">tr"+(clobj||""), parent).each(function() {
+            $((clobj || ">tr"), parent).each(function() {
 				var row = this;
 				var elems = $.makeArray(row.cells);
 				$.each(permutation, function() {
@@ -3565,9 +3565,10 @@ $.jgrid.extend({
 		resortArray(ts.p.colModel);
 		resortArray(ts.p.colNames);
 		resortArray(ts.grid.headers);
-		resortRows($("thead:first", ts.grid.hDiv), keepHeader && ":not(.ui-jqgrid-labels)");
+        resortRows($("thead:first", ts.grid.hDiv), keepHeader && ">tr:not(.ui-jqgrid-labels)");
+        resortRows($("tbody:first", ts.grid.bDiv), ">tr.jqgfirstrow");
 		if (updateCells) {
-			resortRows($("#"+$.jgrid.jqID(ts.p.id)+" tbody:first"), ".jqgfirstrow, tr.jqgrow, tr.jqfoot");
+            resortRows($("tbody:first", ts.grid.bDiv), ">tr.jqgrow, >tr.jqfoot");
 		}
 		if (ts.p.footerrow) {
 			resortRows($("tbody:first", ts.grid.sDiv));
